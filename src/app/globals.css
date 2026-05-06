@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
-/* ─── Variables del sistema ───────────────────────────────────────────────── */
+/* ─── Variables del sistema — Paleta UES ──────────────────────────────────── */
 :root {
-  --color-primary:       #991B1B;
-  --color-primary-dark:  #7F1D1D;
-  --color-primary-light: #FEF2F2;
-  --color-sidebar-bg:    #1C0808;
-  --color-sidebar-fg:    #f9fafb;
-  --color-sidebar-muted: #9ca3af;
-  --color-bg-page:       #f9fafb;
+  --color-primary:       #8B0D14;
+  --color-primary-dark:  #6E0A10;
+  --color-primary-light: #FDF2F3;
+  --color-sidebar-bg:    #ffffff;
+  --color-sidebar-fg:    #374151;
+  --color-sidebar-muted: #6b7280;
+  --color-bg-page:       #f5f5f5;
   --color-bg-surface:    #ffffff;
   --color-text-primary:  #111827;
   --color-text-muted:    #6b7280;
@@ -37,8 +37,9 @@ body {
 
 /* ─── Sidebar ─────────────────────────────────────────────────────────────── */
 .seae-sidebar {
-  background: var(--color-sidebar-bg) !important;
-  border-right: none !important;
+  background: #ffffff !important;
+  border-right: 1px solid #e5e7eb !important;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.06);
 }
 
 .seae-sidebar .ant-layout-sider-children {
@@ -49,8 +50,9 @@ body {
 /* ─── Logo sidebar ────────────────────────────────────────────────────────── */
 .seae-logo {
   padding: 20px 16px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid #f0f0f0;
   flex-shrink: 0;
+  background: var(--color-primary);
 }
 
 .seae-logo-title {
@@ -63,31 +65,31 @@ body {
 
 .seae-logo-sub {
   font-size: 10px;
-  color: var(--color-sidebar-muted);
+  color: rgba(255,255,255,0.75);
   margin-top: 2px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
 
-/* ─── KPI Cards ───────────────────────────────────────────────────────────── */
+/* ─── KPI Cards — sin degradados ─────────────────────────────────────────── */
 .kpi-aceptar {
-  background: linear-gradient(135deg, #15803D 0%, #166534 100%) !important;
+  background: #15803D !important;
   border: none !important;
 }
 .kpi-rechazar {
-  background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%) !important;
+  background: #DC2626 !important;
   border: none !important;
 }
 .kpi-indiferente {
-  background: linear-gradient(135deg, #B45309 0%, #92400E 100%) !important;
+  background: #B45309 !important;
   border: none !important;
 }
 .kpi-result {
-  background: linear-gradient(135deg, #991B1B 0%, #7F1D1D 100%) !important;
+  background: var(--color-primary) !important;
   border: none !important;
 }
 .kpi-neutral {
-  background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+  background: #4B5563 !important;
   border: none !important;
 }
 
@@ -100,38 +102,38 @@ body {
 }
 
 /* ─── Badge decisión ──────────────────────────────────────────────────────── */
-.badge-aceptar   { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 2px 10px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
-.badge-rechazar  { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 2px 10px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+.badge-aceptar    { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 2px 10px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+.badge-rechazar   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 2px 10px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
 .badge-indiferente { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 2px 10px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
 
-/* ─── Fórmula display ─────────────────────────────────────────────────────── */
+/* ─── Fórmula display — fondo claro UES ──────────────────────────────────── */
 .formula-box {
-  background: #1C0808;
+  background: var(--color-primary-light);
   border-radius: var(--radius-lg);
   padding: 20px 24px;
   margin: 12px 0;
-  border: 1px solid #3D1515;
+  border: 1px solid #fecaca;
 }
 
 .formula-text {
   font-family: 'Courier New', Courier, monospace;
   font-size: 16px;
-  color: #fca5a5;
-  font-weight: 600;
+  color: var(--color-primary);
+  font-weight: 700;
   letter-spacing: 0.5px;
 }
 
 .formula-desc {
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   margin-top: 8px;
   line-height: 1.5;
 }
 
 /* ─── Tabla resultados ────────────────────────────────────────────────────── */
 .tabla-resultado .ant-table-thead > tr > th {
-  background: #FEF2F2 !important;
-  color: #7F1D1D !important;
+  background: #FDF2F3 !important;
+  color: #6E0A10 !important;
   font-weight: 700 !important;
   font-size: 12px !important;
 }

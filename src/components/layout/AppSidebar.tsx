@@ -14,6 +14,7 @@ import {
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
+import { COLOR_PRIMARY } from '@/config/antd-theme';
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
@@ -55,19 +56,19 @@ export default function AppSidebar({ children }: { children: React.ReactNode }) 
             <div className="seae-logo-sub">Ingeniería de Negocios • INE135</div>
           </div>
         ) : (
-          <div style={{ padding: '20px 0', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'center', background: COLOR_PRIMARY }}>
             <div style={{
               width: 36, height: 36, borderRadius: 8,
-              background: '#991B1B',
+              background: 'rgba(255,255,255,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: '#fff', fontWeight: 800, fontSize: 16,
             }}>S</div>
           </div>
         )}
 
-        {/* Menú */}
+        {/* Menú — tema claro */}
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={[selectedKey]}
           items={NAV_ITEMS.map(item => ({ ...item, style: { borderRadius: 6, margin: '2px 8px' } }))}
@@ -82,7 +83,7 @@ export default function AppSidebar({ children }: { children: React.ReactNode }) 
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             width: '100%', padding: '12px 0',
             background: 'transparent', border: 'none',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
+            borderTop: '1px solid #f0f0f0',
             color: '#9ca3af', cursor: 'pointer', fontSize: 13, gap: 6,
             transition: 'color 0.15s',
           }}
@@ -99,7 +100,7 @@ export default function AppSidebar({ children }: { children: React.ReactNode }) 
 
       {/* Contenido principal */}
       <Layout style={{ marginLeft: collapsed ? 64 : 240, transition: 'margin-left 0.2s' }}>
-        <Content style={{ padding: 28, minHeight: '100vh', background: '#f9fafb' }}>
+        <Content style={{ padding: 28, minHeight: '100vh', background: '#f5f5f5' }}>
           {children}
         </Content>
       </Layout>
