@@ -169,20 +169,6 @@ export default function DashboardClient() {
         ))}
       </Row>
 
-      {/* Info proyecto */}
-      <Card style={{ marginTop: 24, borderRadius: 12, background: COLOR_PRIMARY_LIGHT, border: `1px solid #fecaca` }}>
-        <Row gutter={24} align="middle">
-          <Col flex="auto">
-            <Text strong style={{ color: COLOR_PRIMARY, fontSize: 14 }}>
-              Proyecto de Ciclo 2026 — INE135 Ingeniería de Negocios
-            </Text>
-            <br />
-            <Text style={{ color: '#7F1D1D', fontSize: 12 }}>
-              Entrega: 9 de mayo 2026 &nbsp;|&nbsp; Presentación: 11–15 de mayo 2026 &nbsp;|&nbsp; 15 minutos por grupo
-            </Text>
-          </Col>
-        </Row>
-      </Card>
     </div>
   );
 }
