@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Form, InputNumber, Button, Row, Col, Alert, Typography, Space, Tooltip } from 'antd';
-import { LineChartOutlined, InfoCircleOutlined, ReloadOutlined, CalculatorOutlined } from '@ant-design/icons';
+import { LineChartOutlined, InfoCircleOutlined, ReloadOutlined, CalculatorOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { calcularCAE, fmtMoneda, rd4, factorAP } from '@/lib/formulas';
 import { guardar, cargar, CLAVES } from '@/lib/storage';
 import { COLOR_PRIMARY } from '@/config/antd-theme';
+import { exportCAEPDF } from '@/lib/exportPDF';
 
 const { Text } = Typography;
 
@@ -139,6 +140,21 @@ export default function CAEClient() {
         <Col xs={24} lg={14}>
           {resultado ? (
             <Space direction="vertical" style={{ width: '100%' }} size={16}>
+              {/* Botón descargar PDF */}
+              <Button
+                icon={<FilePdfOutlined />}
+                onClick={() => exportCAEPDF(resultado, {
+                  costoInicial:    form.getFieldValue('costoInicial') ?? 0,
+                  tasaDescuento:   form.getFieldValue('tasaDescuento') ?? 0,
+                  vida:            form.getFieldValue('vida') ?? 0,
+                  costosAnuales:   form.getFieldValue('costosAnuales') ?? 0,
+                  valorSalvamento: form.getFieldValue('valorSalvamento') ?? 0,
+                })}
+                style={{ borderColor: COLOR_PRIMARY, color: COLOR_PRIMARY, fontWeight: 600 }}
+              >
+                Descargar PDF
+              </Button>
+
               <Row gutter={12}>
                 <Col span={12}>
                   <Card className="kpi-result" style={{ borderRadius: 12 }}>

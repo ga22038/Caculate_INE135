@@ -8,11 +8,12 @@ import {
 import {
   CalculatorOutlined, PlusOutlined, DeleteOutlined,
   InfoCircleOutlined, ReloadOutlined, CheckCircleFilled,
-  CloseCircleFilled, MinusCircleFilled,
+  CloseCircleFilled, MinusCircleFilled, FilePdfOutlined,
 } from '@ant-design/icons';
 import { calcularVPN, fmtMoneda, rd4, type ResultadoVPN } from '@/lib/formulas';
 import { guardar, cargar, CLAVES } from '@/lib/storage';
 import { COLOR_PRIMARY } from '@/config/antd-theme';
+import { exportVPNPDF } from '@/lib/exportPDF';
 
 const { Title, Text } = Typography;
 
@@ -195,6 +196,19 @@ export default function VPNClient() {
         <Col xs={24} lg={14}>
           {resultado ? (
             <Space direction="vertical" style={{ width: '100%' }} size={16}>
+              {/* Botón descargar PDF */}
+              <Button
+                icon={<FilePdfOutlined />}
+                onClick={() => exportVPNPDF(resultado, {
+                  inversionInicial: form.getFieldValue('inversionInicial') ?? 0,
+                  tasaDescuento: form.getFieldValue('tasaDescuento') ?? 0,
+                  valorResidual: form.getFieldValue('valorResidual') ?? 0,
+                })}
+                style={{ borderColor: COLOR_PRIMARY, color: COLOR_PRIMARY, fontWeight: 600 }}
+              >
+                Descargar PDF
+              </Button>
+
               {/* KPIs */}
               <Row gutter={12}>
                 <Col span={12}>

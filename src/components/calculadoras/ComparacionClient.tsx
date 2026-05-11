@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Form, InputNumber, Button, Row, Col, Alert, Typography, Space, Divider, Tag } from 'antd';
-import { SwapOutlined, PlusOutlined, DeleteOutlined, ReloadOutlined, TrophyOutlined } from '@ant-design/icons';
+import { SwapOutlined, PlusOutlined, DeleteOutlined, ReloadOutlined, TrophyOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { compararAlternativas, fmtMoneda, fmtPct, type ResultadoComparacion } from '@/lib/formulas';
 import { guardar, cargar, CLAVES } from '@/lib/storage';
 import { COLOR_PRIMARY } from '@/config/antd-theme';
+import { exportComparacionPDF } from '@/lib/exportPDF';
 
 const { Text, Title } = Typography;
 
@@ -114,6 +115,15 @@ export default function ComparacionClient() {
 
       {resultado && (
         <Space direction="vertical" style={{ width: '100%', marginTop: 20 }} size={16}>
+          {/* Botón descargar PDF */}
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() => exportComparacionPDF(resultado)}
+            style={{ borderColor: COLOR_PRIMARY, color: COLOR_PRIMARY, fontWeight: 600 }}
+          >
+            Descargar PDF
+          </Button>
+
           {/* Resultados lado a lado */}
           <Row gutter={12}>
             {[

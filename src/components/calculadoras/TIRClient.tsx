@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Form, InputNumber, Button, Row, Col, Alert, Typography, Space, Tooltip } from 'antd';
-import { RiseOutlined, PlusOutlined, DeleteOutlined, InfoCircleOutlined, ReloadOutlined, CalculatorOutlined, CheckCircleFilled, CloseCircleFilled, MinusCircleFilled } from '@ant-design/icons';
+import { RiseOutlined, PlusOutlined, DeleteOutlined, InfoCircleOutlined, ReloadOutlined, CalculatorOutlined, CheckCircleFilled, CloseCircleFilled, MinusCircleFilled, FilePdfOutlined } from '@ant-design/icons';
 import { calcularTIR, calcularVPN, fmtPct, fmtMoneda, type ResultadoTIR } from '@/lib/formulas';
 import { guardar, cargar, CLAVES } from '@/lib/storage';
 import { COLOR_PRIMARY } from '@/config/antd-theme';
+import { exportTIRPDF } from '@/lib/exportPDF';
 
 const { Text } = Typography;
 
@@ -111,6 +112,20 @@ export default function TIRClient() {
         <Col xs={24} lg={14}>
           {resultado ? (
             <Space direction="vertical" style={{ width: '100%' }} size={16}>
+              {/* Botón descargar PDF */}
+              <Button
+                icon={<FilePdfOutlined />}
+                onClick={() => exportTIRPDF(resultado, {
+                  inversionInicial: form.getFieldValue('inversionInicial') ?? 0,
+                  tasaMinima:       form.getFieldValue('tasaMinima') ?? 0,
+                  valorResidual:    form.getFieldValue('valorResidual') ?? 0,
+                  flujos,
+                })}
+                style={{ borderColor: COLOR_PRIMARY, color: COLOR_PRIMARY, fontWeight: 600 }}
+              >
+                Descargar PDF
+              </Button>
+
               <Row gutter={12}>
                 <Col span={12}>
                   <Card className={resultado.decision === 'ACEPTAR' ? 'kpi-aceptar' : resultado.decision === 'RECHAZAR' ? 'kpi-rechazar' : 'kpi-indiferente'} style={{ borderRadius: 12 }}>
