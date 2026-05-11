@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Form, InputNumber, Button, Row, Col, Alert, Typography, Space, Tooltip } from 'antd';
 import { RiseOutlined, PlusOutlined, DeleteOutlined, InfoCircleOutlined, ReloadOutlined, CalculatorOutlined, CheckCircleFilled, CloseCircleFilled, MinusCircleFilled, FilePdfOutlined } from '@ant-design/icons';
 import { calcularTIR, calcularVPN, fmtPct, fmtMoneda, type ResultadoTIR } from '@/lib/formulas';
 import { guardar, cargar, CLAVES } from '@/lib/storage';
 import { COLOR_PRIMARY } from '@/config/antd-theme';
 import { exportTIRPDF } from '@/lib/exportPDF';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip,
+  Legend, ResponsiveContainer, ReferenceLine,
+} from 'recharts';
 
 const { Text } = Typography;
 
@@ -17,6 +21,7 @@ export default function TIRClient() {
   const [form]    = Form.useForm<FormValues>();
   const [flujos, setFlujos]     = useState<number[]>(DEFAULT.flujos);
   const [resultado, setResultado] = useState<ResultadoTIR | null>(null);
+  const [chartInputs, setChartInputs] = useState<{ inv: number; vr: number; flujos: number[] } | null>(null);
 
   useEffect(() => {
     const s = cargar<FormValues>(CLAVES.tir, DEFAULT);
@@ -28,8 +33,21 @@ export default function TIRClient() {
     const v = form.getFieldsValue();
     const r = calcularTIR(v.inversionInicial, flujos, v.tasaMinima, v.valorResidual);
     setResultado(r);
+    setChartInputs({ inv: v.inversionInicial ?? 0, vr: v.valorResidual ?? 0, flujos: [...flujos] });
     guardar(CLAVES.tir, { ...v, flujos });
   }, [form, flujos]);
+
+  // Datos para gráfica VPN vs Tasa
+  const datosGraficaTIR = useMemo(() => {
+    if (!resultado || !chartInputs || resultado.decision === 'NO_CONVERGE') return [];
+    const maxRate = Math.min(Math.max(resultado.tir * 2.5, resultado.tasaMinima * 2.5, 50), 150);
+    const steps = 60;
+    return Array.from({ length: steps + 1 }, (_, i) => {
+      const tasa = (maxRate / steps) * i;
+      const vpnVal = calcularVPN(chartInputs.inv, tasa, chartInputs.flujos, chartInputs.vr).vpn;
+      return { tasa: Math.round(tasa * 10) / 10, VPN: Math.round(vpnVal * 100) / 100 };
+    });
+  }, [resultado, chartInputs]);
 
   const DecisionBadge = ({ d }: { d: ResultadoTIR['decision'] }) => {
     if (d === 'NO_CONVERGE') return <span className="badge-indiferente"><MinusCircleFilled /> Sin solución</span>;
@@ -176,6 +194,27 @@ export default function TIRClient() {
                   </Row>
                 ))}
               </Card>
+
+              {/* Gráfica VPN vs Tasa */}
+              {datosGraficaTIR.length > 0 && (
+                <Card title={<Text strong>Gráfica — VPN en función de la tasa de descuento</Text>} style={{ borderRadius: 12 }}>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={datosGraficaTIR} margin={{ top: 8, right: 16, left: 8, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="tasa" tickFormatter={v => `${v}%`} tick={{ fontSize: 10 }} label={{ value: 'Tasa (%)', position: 'insideBottom', offset: -2, fontSize: 10 }} />
+                      <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                      <RechartTooltip formatter={(v: number) => [fmtMoneda(v), 'VPN']} labelFormatter={l => `Tasa: ${l}%`} />
+                      <ReferenceLine y={0} stroke="#6b7280" strokeWidth={1.5} label={{ value: 'VPN = 0', position: 'right', fontSize: 9, fill: '#6b7280' }} />
+                      <ReferenceLine x={Math.round(resultado.tir * 10) / 10} stroke={COLOR_PRIMARY} strokeDasharray="4 3" label={{ value: `TIR=${fmtPct(resultado.tir)}`, position: 'top', fontSize: 9, fill: COLOR_PRIMARY }} />
+                      <ReferenceLine x={resultado.tasaMinima} stroke="#3b82f6" strokeDasharray="4 3" label={{ value: `TMAR=${fmtPct(resultado.tasaMinima)}`, position: 'insideTopLeft', fontSize: 9, fill: '#3b82f6' }} />
+                      <Line type="monotone" dataKey="VPN" stroke={COLOR_PRIMARY} strokeWidth={2} dot={false} name="VPN" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <Text style={{ fontSize: 11, color: '#6b7280' }}>
+                    La línea cruza VPN = 0 en la TIR ({resultado.decision !== 'NO_CONVERGE' ? fmtPct(resultado.tir) : 'N/A'}). La línea azul es la TMAR ({fmtPct(resultado.tasaMinima)}).
+                  </Text>
+                </Card>
+              )}
 
               <Alert type="info" showIcon message="Método de cálculo" description="La TIR se calcula mediante el método de bisección numérica con 500 iteraciones y precisión de 10⁻⁸. Este método garantiza convergencia cuando existe una única TIR real." style={{ borderRadius: 10 }} />
             </Space>

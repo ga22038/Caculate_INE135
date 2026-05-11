@@ -7,8 +7,12 @@ import { compararAlternativas, fmtMoneda, fmtPct, type ResultadoComparacion } fr
 import { guardar, cargar, CLAVES } from '@/lib/storage';
 import { COLOR_PRIMARY } from '@/config/antd-theme';
 import { exportComparacionPDF } from '@/lib/exportPDF';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip,
+  Legend, ResponsiveContainer, ReferenceLine,
+} from 'recharts';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface AltForm { inversion: number; tasa: number; vida: number; flujos: number[]; residual: number; }
 const DEF_A: AltForm = { inversion: 50000, tasa: 10, vida: 5, flujos: [15000, 18000, 20000, 22000, 25000], residual: 5000 };
@@ -84,13 +88,16 @@ export default function ComparacionClient() {
         <div className="page-header-icon"><SwapOutlined /></div>
         <div>
           <div className="page-header-title">Comparación de Alternativas</div>
-          <div className="page-header-sub">Evalúa dos proyectos simultáneamente con VPN y TIR para identificar la mejor opción.</div>
+          <div className="page-header-sub">Evalúa dos proyectos con VPN, CAE y TIR para identificar la mejor opción económica.</div>
         </div>
       </div>
 
       <div className="formula-box" style={{ marginBottom: 20 }}>
-        <div className="formula-text">Seleccionar: max(VPN) si ambas viables | TIR {'>'} TMAR en cada alternativa</div>
-        <div className="formula-desc">VPN: elige el mayor valor &nbsp;|&nbsp; TIR: elige la mayor tasa interna &nbsp;|&nbsp; Ambas deben ser {'>'} 0 para ser viables</div>
+        <div className="formula-text">max(VPN) | max(CAE) | max(TIR) — siempre que sean viables</div>
+        <div className="formula-desc">
+          VPN {'>'} 0 → viable &nbsp;|&nbsp; CAE = VPN × FRC &nbsp;|&nbsp; TIR {'>'} TMAR → aceptar &nbsp;|&nbsp;
+          Criterio principal: mayor VPN entre alternativas viables
+        </div>
       </div>
 
       <Row gutter={[16, 16]}>
@@ -115,7 +122,7 @@ export default function ComparacionClient() {
 
       {resultado && (
         <Space direction="vertical" style={{ width: '100%', marginTop: 20 }} size={16}>
-          {/* Botón descargar PDF */}
+          {/* Botón PDF */}
           <Button
             icon={<FilePdfOutlined />}
             onClick={() => exportComparacionPDF(resultado)}
@@ -124,33 +131,53 @@ export default function ComparacionClient() {
             Descargar PDF
           </Button>
 
-          {/* Resultados lado a lado */}
+          {/* Cards por alternativa */}
           <Row gutter={12}>
             {[
-              { label: 'Alternativa A', vpn: resultado.vpnA.vpn, dec: resultado.vpnA.decision, tir: resultado.tirA.tir, tirDec: resultado.tirA.decision, esMejor: resultado.mejorVPN === 'Alternativa A' },
-              { label: 'Alternativa B', vpn: resultado.vpnB.vpn, dec: resultado.vpnB.decision, tir: resultado.tirB.tir, tirDec: resultado.tirB.decision, esMejor: resultado.mejorVPN === 'Alternativa B' },
+              {
+                label: 'Alternativa A',
+                vpn: resultado.vpnA.vpn, dec: resultado.vpnA.decision,
+                tir: resultado.tirA.tir, tirDec: resultado.tirA.decision,
+                cae: resultado.caeA,
+                esMejorVPN: resultado.mejorVPN === 'Alternativa A',
+                esMejorCAE: resultado.mejorCAE === 'Alternativa A',
+              },
+              {
+                label: 'Alternativa B',
+                vpn: resultado.vpnB.vpn, dec: resultado.vpnB.decision,
+                tir: resultado.tirB.tir, tirDec: resultado.tirB.decision,
+                cae: resultado.caeB,
+                esMejorVPN: resultado.mejorVPN === 'Alternativa B',
+                esMejorCAE: resultado.mejorCAE === 'Alternativa B',
+              },
             ].map(alt => (
               <Col key={alt.label} span={12}>
                 <Card
-                  style={{ borderRadius: 12, border: alt.esMejor ? '2px solid #991B1B' : '1px solid #e5e7eb' }}
+                  style={{ borderRadius: 12, border: alt.esMejorVPN ? '2px solid #991B1B' : '1px solid #e5e7eb' }}
                   title={
                     <Space>
-                      <Text strong style={{ color: alt.esMejor ? COLOR_PRIMARY : '#374151' }}>{alt.label}</Text>
-                      {alt.esMejor && <Tag color="#991B1B" icon={<TrophyOutlined />}>Recomendada</Tag>}
+                      <Text strong style={{ color: alt.esMejorVPN ? COLOR_PRIMARY : '#374151' }}>{alt.label}</Text>
+                      {alt.esMejorVPN && <Tag color="#991B1B" icon={<TrophyOutlined />}>Recomendada</Tag>}
                     </Space>
                   }
                 >
-                  <Row gutter={8} style={{ marginBottom: 12 }}>
-                    <Col span={12}>
-                      <div style={{ background: alt.dec === 'ACEPTAR' ? '#dcfce7' : '#fee2e2', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
-                        <Text style={{ fontSize: 10, color: '#6b7280', display: 'block' }}>VPN</Text>
-                        <Text strong style={{ fontSize: 15, color: alt.dec === 'ACEPTAR' ? '#15803d' : '#dc2626' }}>{fmtMoneda(alt.vpn)}</Text>
+                  <Row gutter={8} style={{ marginBottom: 8 }}>
+                    <Col span={8}>
+                      <div style={{ background: alt.dec === 'ACEPTAR' ? '#dcfce7' : '#fee2e2', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
+                        <Text style={{ fontSize: 9, color: '#6b7280', display: 'block' }}>VPN</Text>
+                        <Text strong style={{ fontSize: 12, color: alt.dec === 'ACEPTAR' ? '#15803d' : '#dc2626' }}>{fmtMoneda(alt.vpn)}</Text>
                       </div>
                     </Col>
-                    <Col span={12}>
-                      <div style={{ background: alt.tirDec === 'ACEPTAR' ? '#dcfce7' : '#fee2e2', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
-                        <Text style={{ fontSize: 10, color: '#6b7280', display: 'block' }}>TIR</Text>
-                        <Text strong style={{ fontSize: 15, color: alt.tirDec === 'ACEPTAR' ? '#15803d' : '#dc2626' }}>{fmtPct(alt.tir)}</Text>
+                    <Col span={8}>
+                      <div style={{ background: alt.cae >= 0 ? '#dcfce7' : '#fee2e2', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
+                        <Text style={{ fontSize: 9, color: '#6b7280', display: 'block' }}>CAE</Text>
+                        <Text strong style={{ fontSize: 12, color: alt.cae >= 0 ? '#15803d' : '#dc2626' }}>{fmtMoneda(alt.cae)}</Text>
+                      </div>
+                    </Col>
+                    <Col span={8}>
+                      <div style={{ background: alt.tirDec === 'ACEPTAR' ? '#dcfce7' : '#fee2e2', borderRadius: 8, padding: '8px 6px', textAlign: 'center' }}>
+                        <Text style={{ fontSize: 9, color: '#6b7280', display: 'block' }}>TIR</Text>
+                        <Text strong style={{ fontSize: 12, color: alt.tirDec === 'ACEPTAR' ? '#15803d' : '#dc2626' }}>{fmtPct(alt.tir)}</Text>
                       </div>
                     </Col>
                   </Row>
@@ -173,8 +200,70 @@ export default function ComparacionClient() {
             style={{ borderRadius: 10, fontSize: 14 }}
           />
 
+          {/* Gráficas comparativas */}
+          <Row gutter={16}>
+            {/* VPN + CAE */}
+            <Col xs={24} md={14}>
+              <Card title={<Text strong>VPN y CAE — Comparación</Text>} style={{ borderRadius: 12 }}>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart
+                    data={[
+                      { metodo: 'VPN', 'Alt. A': Math.round(resultado.vpnA.vpn * 100) / 100, 'Alt. B': Math.round(resultado.vpnB.vpn * 100) / 100 },
+                      { metodo: 'CAE', 'Alt. A': Math.round(resultado.caeA * 100) / 100, 'Alt. B': Math.round(resultado.caeB * 100) / 100 },
+                    ]}
+                    margin={{ top: 8, right: 16, left: 8, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="metodo" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                    <RechartTooltip formatter={(v: number) => fmtMoneda(v)} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <ReferenceLine y={0} stroke="#9ca3af" />
+                    <Bar dataKey="Alt. A" fill={COLOR_PRIMARY} radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="Alt. B" fill="#374151" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            </Col>
+
+            {/* TIR */}
+            <Col xs={24} md={10}>
+              <Card title={<Text strong>TIR — Comparación</Text>} style={{ borderRadius: 12 }}>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart
+                    data={[
+                      { alt: 'Alt. A', TIR: Math.round(resultado.tirA.tir * 100) / 100 },
+                      { alt: 'Alt. B', TIR: Math.round(resultado.tirB.tir * 100) / 100 },
+                    ]}
+                    margin={{ top: 8, right: 16, left: 8, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="alt" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 10 }} />
+                    <RechartTooltip formatter={(v: number) => [`${v}%`, 'TIR']} />
+                    <ReferenceLine
+                      y={resultado.alternativaA.tasaPorcentaje}
+                      stroke="#3b82f6"
+                      strokeDasharray="4 3"
+                      label={{ value: `TMAR ${resultado.alternativaA.tasaPorcentaje}%`, position: 'right', fontSize: 9, fill: '#3b82f6' }}
+                    />
+                    <Bar dataKey="TIR" radius={[3, 3, 0, 0]}
+                      fill={COLOR_PRIMARY}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            </Col>
+          </Row>
+
           {/* Tabla comparativa */}
           <Card title={<Text strong>Tabla Comparativa Detallada</Text>} style={{ borderRadius: 12 }}>
+            {/* Cabecera */}
+            <Row style={{ padding: '6px 0 10px', borderBottom: '2px solid #e5e7eb' }}>
+              <Col span={8}><Text style={{ fontSize: 12, color: '#9ca3af', fontWeight: 700 }}>CONCEPTO</Text></Col>
+              <Col span={8} style={{ textAlign: 'center' }}><Text style={{ fontSize: 12, color: COLOR_PRIMARY, fontWeight: 700 }}>ALTERNATIVA A</Text></Col>
+              <Col span={8} style={{ textAlign: 'center' }}><Text style={{ fontSize: 12, color: '#374151', fontWeight: 700 }}>ALTERNATIVA B</Text></Col>
+            </Row>
             {[
               { concepto: 'Inversión Inicial',      a: fmtMoneda(formA.getFieldValue('inversion')),    b: fmtMoneda(formB.getFieldValue('inversion')) },
               { concepto: 'Tasa TMAR',              a: `${formA.getFieldValue('tasa')}%`,              b: `${formB.getFieldValue('tasa')}%` },
@@ -182,6 +271,7 @@ export default function ComparacionClient() {
               { concepto: 'Valor Residual',         a: fmtMoneda(formA.getFieldValue('residual')),     b: fmtMoneda(formB.getFieldValue('residual')) },
               { concepto: 'VPN Calculado',          a: fmtMoneda(resultado.vpnA.vpn),                  b: fmtMoneda(resultado.vpnB.vpn) },
               { concepto: 'Decisión VPN',           a: resultado.vpnA.decision,                         b: resultado.vpnB.decision },
+              { concepto: 'CAE Calculado',          a: fmtMoneda(resultado.caeA),                       b: fmtMoneda(resultado.caeB) },
               { concepto: 'TIR Calculada',          a: fmtPct(resultado.tirA.tir),                     b: fmtPct(resultado.tirB.tir) },
               { concepto: 'Decisión TIR',           a: resultado.tirA.decision,                         b: resultado.tirB.decision },
               { concepto: 'RECOMENDACIÓN',          a: resultado.mejorVPN === 'Alternativa A' ? '★ ELEGIDA' : '', b: resultado.mejorVPN === 'Alternativa B' ? '★ ELEGIDA' : '' },
@@ -189,10 +279,22 @@ export default function ComparacionClient() {
               <Row key={row.concepto} style={{ padding: '7px 0', borderBottom: '1px solid #f3f4f6' }} align="middle">
                 <Col span={8}><Text style={{ fontSize: 13, color: '#6b7280' }}>{row.concepto}</Text></Col>
                 <Col span={8} style={{ textAlign: 'center' }}>
-                  <Text style={{ fontSize: 13, color: resultado.mejorVPN === 'Alternativa A' && row.concepto === 'RECOMENDACIÓN' ? COLOR_PRIMARY : '#374151', fontWeight: row.concepto === 'RECOMENDACIÓN' ? 700 : 400 }}>{row.a}</Text>
+                  <Text style={{
+                    fontSize: 13,
+                    color: row.concepto === 'RECOMENDACIÓN' && resultado.mejorVPN === 'Alternativa A' ? COLOR_PRIMARY :
+                           (row.concepto === 'Decisión VPN' || row.concepto === 'Decisión TIR') && row.a === 'ACEPTAR' ? '#15803d' :
+                           (row.concepto === 'Decisión VPN' || row.concepto === 'Decisión TIR') && row.a === 'RECHAZAR' ? '#dc2626' : '#374151',
+                    fontWeight: row.concepto === 'RECOMENDACIÓN' ? 700 : 400,
+                  }}>{row.a}</Text>
                 </Col>
                 <Col span={8} style={{ textAlign: 'center' }}>
-                  <Text style={{ fontSize: 13, color: resultado.mejorVPN === 'Alternativa B' && row.concepto === 'RECOMENDACIÓN' ? COLOR_PRIMARY : '#374151', fontWeight: row.concepto === 'RECOMENDACIÓN' ? 700 : 400 }}>{row.b}</Text>
+                  <Text style={{
+                    fontSize: 13,
+                    color: row.concepto === 'RECOMENDACIÓN' && resultado.mejorVPN === 'Alternativa B' ? COLOR_PRIMARY :
+                           (row.concepto === 'Decisión VPN' || row.concepto === 'Decisión TIR') && row.b === 'ACEPTAR' ? '#15803d' :
+                           (row.concepto === 'Decisión VPN' || row.concepto === 'Decisión TIR') && row.b === 'RECHAZAR' ? '#dc2626' : '#374151',
+                    fontWeight: row.concepto === 'RECOMENDACIÓN' ? 700 : 400,
+                  }}>{row.b}</Text>
                 </Col>
               </Row>
             ))}

@@ -14,6 +14,10 @@ import { calcularVPN, fmtMoneda, rd4, type ResultadoVPN } from '@/lib/formulas';
 import { guardar, cargar, CLAVES } from '@/lib/storage';
 import { COLOR_PRIMARY } from '@/config/antd-theme';
 import { exportVPNPDF } from '@/lib/exportPDF';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip,
+  Legend, ResponsiveContainer, ReferenceLine,
+} from 'recharts';
 
 const { Title, Text } = Typography;
 
@@ -254,6 +258,29 @@ export default function VPNClient() {
               />
 
               {/* Tabla de flujos descontados */}
+              {/* Gráfica de flujos */}
+              <Card title={<Text strong>Gráfica — Flujos Originales vs Descontados</Text>} style={{ borderRadius: 12 }}>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart
+                    data={resultado.filas.map(f => ({
+                      periodo: `t=${f.periodo}`,
+                      'Flujo Original': f.flujoCaja,
+                      'Flujo Descontado': Math.round(f.flujoCajaDescontado * 100) / 100,
+                    }))}
+                    margin={{ top: 8, right: 16, left: 8, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="periodo" tick={{ fontSize: 11 }} />
+                    <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                    <RechartTooltip formatter={(v: number) => fmtMoneda(v)} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <ReferenceLine y={0} stroke="#9ca3af" />
+                    <Bar dataKey="Flujo Original" fill="#9ca3af" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="Flujo Descontado" fill={COLOR_PRIMARY} radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+
               <Card title={<Text strong>Tabla de Flujos Descontados</Text>} style={{ borderRadius: 12 }}>
                 <Table
                   className="tabla-resultado"

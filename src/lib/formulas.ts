@@ -297,9 +297,12 @@ export interface ResultadoComparacion {
   vpnB: ResultadoVPN;
   tirA: ResultadoTIR;
   tirB: ResultadoTIR;
+  caeA: number;
+  caeB: number;
   recomendacion: string;
   mejorVPN: string;
   mejorTIR: string;
+  mejorCAE: string;
 }
 
 export function compararAlternativas(
@@ -311,8 +314,13 @@ export function compararAlternativas(
   const tirA = calcularTIR(a.inversionInicial, a.flujosCaja, a.tasaPorcentaje, a.valorResidual);
   const tirB = calcularTIR(b.inversionInicial, b.flujosCaja, b.tasaPorcentaje, b.valorResidual);
 
+  // CAE = VPN × FRC (convierte VPN a anualidad equivalente)
+  const caeA = vpnA.vpn * factorAP(a.tasaPorcentaje / 100, a.flujosCaja.length);
+  const caeB = vpnB.vpn * factorAP(b.tasaPorcentaje / 100, b.flujosCaja.length);
+
   const mejorVPN = vpnA.vpn >= vpnB.vpn ? a.nombre : b.nombre;
   const mejorTIR  = tirA.tir >= tirB.tir   ? a.nombre : b.nombre;
+  const mejorCAE  = caeA   >= caeB         ? a.nombre : b.nombre;
 
   let recomendacion = '';
   if (vpnA.decision === 'RECHAZAR' && vpnB.decision === 'RECHAZAR') {
@@ -325,7 +333,7 @@ export function compararAlternativas(
     recomendacion = `Ambas alternativas son viables. Se recomienda ${mejorVPN} por tener mayor VPN ($${vpnA.vpn >= vpnB.vpn ? vpnA.vpn.toFixed(2) : vpnB.vpn.toFixed(2)}).`;
   }
 
-  return { alternativaA: a, alternativaB: b, vpnA, vpnB, tirA, tirB, recomendacion, mejorVPN, mejorTIR };
+  return { alternativaA: a, alternativaB: b, vpnA, vpnB, tirA, tirB, caeA, caeB, recomendacion, mejorVPN, mejorTIR, mejorCAE };
 }
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────

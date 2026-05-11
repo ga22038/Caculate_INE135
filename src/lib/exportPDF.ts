@@ -371,6 +371,7 @@ export function exportComparacionPDF(resultado: ResultadoComparacion) {
       ['Valor Residual', fmtMoneda(a.valorResidual ?? 0), fmtMoneda(b.valorResidual ?? 0)],
       ['VPN Calculado', fmtMoneda(vpnA.vpn), fmtMoneda(vpnB.vpn)],
       ['Decisión VPN', vpnA.decision, vpnB.decision],
+      ['CAE Calculado', fmtMoneda(resultado.caeA), fmtMoneda(resultado.caeB)],
       ['TIR Calculada', tirA.decision === 'NO_CONVERGE' ? 'N/A' : fmtPct(tirA.tir), tirB.decision === 'NO_CONVERGE' ? 'N/A' : fmtPct(tirB.tir)],
       ['Decisión TIR', tirA.decision, tirB.decision],
       ['RECOMENDACIÓN', resultado.mejorVPN === a.nombre ? '★ ELEGIDA' : '', resultado.mejorVPN === b.nombre ? '★ ELEGIDA' : ''],
@@ -384,13 +385,13 @@ export function exportComparacionPDF(resultado: ResultadoComparacion) {
     },
     margin: { left: 14, right: 14 },
     didParseCell: (data) => {
-      if (data.row.index === 8) {
+      if (data.row.index === 9) {
         data.cell.styles.fillColor = [254, 242, 242];
         data.cell.styles.textColor = [R, G, B];
         data.cell.styles.fontStyle = 'bold';
       }
-      // Verde para ACEPTAR, rojo para RECHAZAR
-      if ((data.row.index === 5 || data.row.index === 7) && data.column.index > 0) {
+      // Verde para ACEPTAR, rojo para RECHAZAR (VPN decision=5, TIR decision=8)
+      if ((data.row.index === 5 || data.row.index === 8) && data.column.index > 0) {
         const val = String(data.cell.raw);
         if (val === 'ACEPTAR') data.cell.styles.textColor = [21, 128, 61];
         if (val === 'RECHAZAR') data.cell.styles.textColor = [220, 38, 38];
