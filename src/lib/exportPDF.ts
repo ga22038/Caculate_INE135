@@ -251,6 +251,59 @@ export function exportCAEPDF(resultado: ResultadoCAE, inputs: InputsCAE) {
   doc.save(`SEAE_CAE_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
+// ─── CAE Comparación (A vs B) ────────────────────────────────────────────────
+
+export function exportCAEComparacionPDF(
+  resA: ResultadoCAE, inA: InputsCAE,
+  resB: ResultadoCAE, inB: InputsCAE,
+  mejorLabel: string,
+) {
+  const doc = new jsPDF() as DocWithAutoTable;
+  let y = addHeader(doc, 'Costo Anual Equivalente (CAE) — Comparación A vs B');
+
+  doc.setFontSize(9); doc.setTextColor(107, 114, 128);
+  doc.text('CAE = VPN × FRC  |  FRC = i(1+i)ⁿ / ((1+i)ⁿ - 1)  |  Seleccionar mayor CAE (beneficios) o menor absoluto (costos)', 14, y);
+  y += 8;
+
+  // Tabla comparativa
+  autoTable(doc, {
+    startY: y,
+    head: [['Concepto', 'Alternativa A', 'Alternativa B']],
+    body: [
+      ['Inversión inicial',        fmtMoneda(inA.costoInicial),    fmtMoneda(inB.costoInicial)],
+      ['Costos anuales',           fmtMoneda(inA.costosAnuales),   fmtMoneda(inB.costosAnuales)],
+      ['Valor de salvamento',      fmtMoneda(inA.valorSalvamento), fmtMoneda(inB.valorSalvamento)],
+      ['Tasa TMAR',                `${inA.tasaDescuento}%`,        `${inB.tasaDescuento}%`],
+      ['Vida útil',                `${inA.vida} años`,             `${inB.vida} años`],
+      ['VPN calculado',            fmtMoneda(resA.vpn),            fmtMoneda(resB.vpn)],
+      ['FRC (A/P, i, n)',          rd4(resA.frc).toFixed(4),       rd4(resB.frc).toFixed(4)],
+      ['CAE = VPN × FRC',         fmtMoneda(resA.cae),            fmtMoneda(resB.cae)],
+      ['RECOMENDACIÓN',            mejorLabel === 'Alternativa A' ? '★ ELEGIDA' : '', mejorLabel === 'Alternativa B' ? '★ ELEGIDA' : ''],
+    ],
+    headStyles: { fillColor: [R, G, B] },
+    alternateRowStyles: { fillColor: [249, 250, 251] },
+    columnStyles: { 0: { cellWidth: 55 }, 1: { halign: 'center' }, 2: { halign: 'center' } },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.row.index === 8) {
+        data.cell.styles.fillColor = [254, 242, 242];
+        data.cell.styles.textColor = [R, G, B];
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
+
+  doc.setFillColor(254, 242, 242);
+  doc.roundedRect(14, y, 182, 14, 3, 3, 'F');
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(R, G, B);
+  doc.text(`Recomendación: ${mejorLabel} — CAE = ${fmtMoneda(mejorLabel === 'Alternativa A' ? resA.cae : resB.cae)}`, 18, y + 9);
+
+  addFooter(doc);
+  doc.save(`SEAE_CAE_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 // ─── TIR ─────────────────────────────────────────────────────────────────────
 
 export interface InputsTIR {
