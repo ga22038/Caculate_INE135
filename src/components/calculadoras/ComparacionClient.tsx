@@ -98,12 +98,14 @@ export default function ComparacionClient() {
   const [resultado, setResultado] = useState<ResultadoComparacion | null>(null);
 
   useEffect(() => {
-    const s = cargar<{ a: AltForm; b: AltForm; c: AltForm }>(
-      CLAVES.comparar, { a: DEFAULTS[0], b: DEFAULTS[1], c: DEFAULTS[2] }
-    );
-    formA.setFieldsValue(s.a); setFlujosA(s.a.flujos);
-    formB.setFieldsValue(s.b); setFlujosB(s.b.flujos);
-    formC.setFieldsValue(s.c ?? DEFAULTS[2]); setFlujosC(s.c?.flujos ?? DEFAULTS[2].flujos);
+    const raw = cargar<unknown>(CLAVES.comparar, null);
+    const parsed = raw as { a?: Partial<AltForm>; b?: Partial<AltForm>; c?: Partial<AltForm> } | null;
+    const sa = { ...DEFAULTS[0], ...(parsed?.a ?? {}) };
+    const sb = { ...DEFAULTS[1], ...(parsed?.b ?? {}) };
+    const sc = { ...DEFAULTS[2], ...(parsed?.c ?? {}) };
+    formA.setFieldsValue(sa); setFlujosA(sa.flujos ?? DEFAULTS[0].flujos);
+    formB.setFieldsValue(sb); setFlujosB(sb.flujos ?? DEFAULTS[1].flujos);
+    formC.setFieldsValue(sc); setFlujosC(sc.flujos ?? DEFAULTS[2].flujos);
   }, [formA, formB, formC]);
 
   const calcular = useCallback(() => {

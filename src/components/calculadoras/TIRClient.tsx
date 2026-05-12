@@ -110,11 +110,12 @@ export default function TIRClient() {
   const [chartB, setChartB] = useState<ChartInputs | null>(null);
 
   useEffect(() => {
-    const s = cargar<{ a: FormValues & { flujos: number[] }; b: FormValues & { flujos: number[] } }>(
-      CLAVES.tir, { a: { ...DEF_A, flujos: FLUJOS_A_DEF }, b: { ...DEF_B, flujos: FLUJOS_B_DEF } }
-    );
-    formA.setFieldsValue(s.a); setFlujosA(s.a.flujos ?? FLUJOS_A_DEF);
-    formB.setFieldsValue(s.b); setFlujosB(s.b.flujos ?? FLUJOS_B_DEF);
+    const raw = cargar<unknown>(CLAVES.tir, null);
+    const parsed = raw as { a?: FormValues & { flujos?: number[] }; b?: FormValues & { flujos?: number[] } } | null;
+    const sa = parsed?.a ?? { ...DEF_A, flujos: FLUJOS_A_DEF };
+    const sb = parsed?.b ?? { ...DEF_B, flujos: FLUJOS_B_DEF };
+    formA.setFieldsValue(sa); setFlujosA(sa.flujos ?? FLUJOS_A_DEF);
+    formB.setFieldsValue(sb); setFlujosB(sb.flujos ?? FLUJOS_B_DEF);
   }, [formA, formB]);
 
   const calcular = useCallback(() => {
