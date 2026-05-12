@@ -355,34 +355,34 @@ export function exportComparacionPDF(resultado: ResultadoComparacion) {
   let y = addHeader(doc, 'Comparación de Alternativas');
 
   doc.setFontSize(9); doc.setTextColor(107, 114, 128);
-  doc.text('Criterio: seleccionar max(VPN) entre alternativas viables. TIR > TMAR en cada una.', 14, y);
+  doc.text(`Criterio: max(VPN) entre alternativas viables. TIR > TMAR. CAE = VPN × FRC. ${resultado.alternativas.length} alternativas evaluadas.`, 14, y);
   y += 8;
 
-  const { alternativaA: a, alternativaB: b, vpnA, vpnB, tirA, tirB } = resultado;
+  const alts = resultado.alternativas;
+  const nombres = alts.map(a => a.input.nombre);
 
   // Tabla comparativa principal
   autoTable(doc, {
     startY: y,
-    head: [['Concepto', a.nombre, b.nombre]],
+    head: [['Concepto', ...nombres]],
     body: [
-      ['Inversión Inicial', fmtMoneda(a.inversionInicial), fmtMoneda(b.inversionInicial)],
-      ['Tasa TMAR', `${a.tasaPorcentaje}%`, `${b.tasaPorcentaje}%`],
-      ['Vida Útil', `${a.flujosCaja.length} años`, `${b.flujosCaja.length} años`],
-      ['Valor Residual', fmtMoneda(a.valorResidual ?? 0), fmtMoneda(b.valorResidual ?? 0)],
-      ['VPN Calculado', fmtMoneda(vpnA.vpn), fmtMoneda(vpnB.vpn)],
-      ['Decisión VPN', vpnA.decision, vpnB.decision],
-      ['CAE Calculado', fmtMoneda(resultado.caeA), fmtMoneda(resultado.caeB)],
-      ['TIR Calculada', tirA.decision === 'NO_CONVERGE' ? 'N/A' : fmtPct(tirA.tir), tirB.decision === 'NO_CONVERGE' ? 'N/A' : fmtPct(tirB.tir)],
-      ['Decisión TIR', tirA.decision, tirB.decision],
-      ['RECOMENDACIÓN', resultado.mejorVPN === a.nombre ? '★ ELEGIDA' : '', resultado.mejorVPN === b.nombre ? '★ ELEGIDA' : ''],
+      ['Inversión Inicial',   ...alts.map(a => fmtMoneda(a.input.inversionInicial))],
+      ['Tasa TMAR',           ...alts.map(a => `${a.input.tasaPorcentaje}%`)],
+      ['Vida Útil',           ...alts.map(a => `${a.input.flujosCaja.length} años`)],
+      ['Valor Residual',      ...alts.map(a => fmtMoneda(a.input.valorResidual ?? 0))],
+      ['VPN Calculado',       ...alts.map(a => fmtMoneda(a.vpn.vpn))],
+      ['Decisión VPN',        ...alts.map(a => a.vpn.decision)],
+      ['CAE Calculado',       ...alts.map(a => fmtMoneda(a.cae))],
+      ['TIR Calculada',       ...alts.map(a => a.tir.decision === 'NO_CONVERGE' ? 'N/A' : fmtPct(a.tir.tir))],
+      ['Decisión TIR',        ...alts.map(a => a.tir.decision)],
+      ['RECOMENDACIÓN',       ...alts.map(a => resultado.mejorVPN === a.input.nombre ? '★ ELEGIDA' : '')],
     ],
     headStyles: { fillColor: [R, G, B] },
     alternateRowStyles: { fillColor: [249, 250, 251] },
-    columnStyles: {
-      0: { cellWidth: 60 },
-      1: { halign: 'center' },
-      2: { halign: 'center' },
-    },
+    columnStyles: Object.fromEntries([
+      [0, { cellWidth: 45 }],
+      ...alts.map((_, i) => [i + 1, { halign: 'center' as const }]),
+    ]),
     margin: { left: 14, right: 14 },
     didParseCell: (data) => {
       if (data.row.index === 9) {
@@ -390,7 +390,6 @@ export function exportComparacionPDF(resultado: ResultadoComparacion) {
         data.cell.styles.textColor = [R, G, B];
         data.cell.styles.fontStyle = 'bold';
       }
-      // Verde para ACEPTAR, rojo para RECHAZAR (VPN decision=5, TIR decision=8)
       if ((data.row.index === 5 || data.row.index === 8) && data.column.index > 0) {
         const val = String(data.cell.raw);
         if (val === 'ACEPTAR') data.cell.styles.textColor = [21, 128, 61];
@@ -411,22 +410,20 @@ export function exportComparacionPDF(resultado: ResultadoComparacion) {
 
   y += 24;
 
-  // Flujos de caja — ambas alternativas
-  const maxPeriodos = Math.max(a.flujosCaja.length, b.flujosCaja.length);
+  // Flujos de caja — todas las alternativas
+  const maxPeriodos = Math.max(...alts.map(a => a.input.flujosCaja.length));
   autoTable(doc, {
     startY: y,
-    head: [['Período', `${a.nombre} — Flujos`, `${b.nombre} — Flujos`]],
+    head: [['Período', ...alts.map(a => `${a.input.nombre} — Flujos`)]],
     body: Array.from({ length: maxPeriodos }, (_, i) => [
       `Año ${i + 1}`,
-      a.flujosCaja[i] !== undefined ? fmtMoneda(a.flujosCaja[i]) : '—',
-      b.flujosCaja[i] !== undefined ? fmtMoneda(b.flujosCaja[i]) : '—',
+      ...alts.map(a => a.input.flujosCaja[i] !== undefined ? fmtMoneda(a.input.flujosCaja[i]) : '—'),
     ]),
     headStyles: { fillColor: [R, G, B] },
-    columnStyles: {
-      0: { halign: 'center' },
-      1: { halign: 'right' },
-      2: { halign: 'right' },
-    },
+    columnStyles: Object.fromEntries([
+      [0, { halign: 'center' as const }],
+      ...alts.map((_, i) => [i + 1, { halign: 'right' as const }]),
+    ]),
     margin: { left: 14, right: 14 },
   });
 

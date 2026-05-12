@@ -290,15 +290,15 @@ export interface AlternativaInput {
   valorResidual?: number;
 }
 
+export interface ResultadoAlternativa {
+  input: AlternativaInput;
+  vpn: ResultadoVPN;
+  tir: ResultadoTIR;
+  cae: number;
+}
+
 export interface ResultadoComparacion {
-  alternativaA: AlternativaInput;
-  alternativaB: AlternativaInput;
-  vpnA: ResultadoVPN;
-  vpnB: ResultadoVPN;
-  tirA: ResultadoTIR;
-  tirB: ResultadoTIR;
-  caeA: number;
-  caeB: number;
+  alternativas: ResultadoAlternativa[];
   recomendacion: string;
   mejorVPN: string;
   mejorTIR: string;
@@ -306,34 +306,40 @@ export interface ResultadoComparacion {
 }
 
 export function compararAlternativas(
-  a: AlternativaInput,
-  b: AlternativaInput,
+  ...alts: AlternativaInput[]
 ): ResultadoComparacion {
-  const vpnA = calcularVPN(a.inversionInicial, a.tasaPorcentaje, a.flujosCaja, a.valorResidual);
-  const vpnB = calcularVPN(b.inversionInicial, b.tasaPorcentaje, b.flujosCaja, b.valorResidual);
-  const tirA = calcularTIR(a.inversionInicial, a.flujosCaja, a.tasaPorcentaje, a.valorResidual);
-  const tirB = calcularTIR(b.inversionInicial, b.flujosCaja, b.tasaPorcentaje, b.valorResidual);
+  const alternativas: ResultadoAlternativa[] = alts.map(a => {
+    const vpn = calcularVPN(a.inversionInicial, a.tasaPorcentaje, a.flujosCaja, a.valorResidual);
+    const tir = calcularTIR(a.inversionInicial, a.flujosCaja, a.tasaPorcentaje, a.valorResidual);
+    const cae = vpn.vpn * factorAP(a.tasaPorcentaje / 100, a.flujosCaja.length);
+    return { input: a, vpn, tir, cae };
+  });
 
-  // CAE = VPN × FRC (convierte VPN a anualidad equivalente)
-  const caeA = vpnA.vpn * factorAP(a.tasaPorcentaje / 100, a.flujosCaja.length);
-  const caeB = vpnB.vpn * factorAP(b.tasaPorcentaje / 100, b.flujosCaja.length);
+  const viables = alternativas.filter(r => r.vpn.decision !== 'RECHAZAR');
 
-  const mejorVPN = vpnA.vpn >= vpnB.vpn ? a.nombre : b.nombre;
-  const mejorTIR  = tirA.tir >= tirB.tir   ? a.nombre : b.nombre;
-  const mejorCAE  = caeA   >= caeB         ? a.nombre : b.nombre;
-
+  let mejorVPN = '';
   let recomendacion = '';
-  if (vpnA.decision === 'RECHAZAR' && vpnB.decision === 'RECHAZAR') {
-    recomendacion = 'Ambas alternativas son económicamente no viables. Se recomienda no invertir.';
-  } else if (vpnA.decision === 'RECHAZAR') {
-    recomendacion = `${b.nombre} es la única alternativa viable (VPN > 0).`;
-  } else if (vpnB.decision === 'RECHAZAR') {
-    recomendacion = `${a.nombre} es la única alternativa viable (VPN > 0).`;
+
+  if (viables.length === 0) {
+    recomendacion = 'Todas las alternativas son económicamente no viables. Se recomienda no invertir.';
   } else {
-    recomendacion = `Ambas alternativas son viables. Se recomienda ${mejorVPN} por tener mayor VPN ($${vpnA.vpn >= vpnB.vpn ? vpnA.vpn.toFixed(2) : vpnB.vpn.toFixed(2)}).`;
+    const best = viables.reduce((prev, curr) => curr.vpn.vpn > prev.vpn.vpn ? curr : prev);
+    mejorVPN = best.input.nombre;
+    recomendacion = viables.length === 1
+      ? `${mejorVPN} es la única alternativa viable (VPN > 0).`
+      : `Se recomienda ${mejorVPN} por tener el mayor VPN (${fmtMoneda(best.vpn.vpn)}).`;
   }
 
-  return { alternativaA: a, alternativaB: b, vpnA, vpnB, tirA, tirB, caeA, caeB, recomendacion, mejorVPN, mejorTIR, mejorCAE };
+  const bestTIR = alternativas.reduce((prev, curr) => curr.tir.tir > prev.tir.tir ? curr : prev);
+  const bestCAE = alternativas.reduce((prev, curr) => curr.cae > prev.cae ? curr : prev);
+
+  return {
+    alternativas,
+    recomendacion,
+    mejorVPN,
+    mejorTIR: bestTIR.input.nombre,
+    mejorCAE: bestCAE.input.nombre,
+  };
 }
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────
