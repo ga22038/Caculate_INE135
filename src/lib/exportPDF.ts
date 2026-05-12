@@ -304,6 +304,102 @@ export function exportCAEComparacionPDF(
   doc.save(`SEAE_CAE_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
+// ─── VPN Comparación (A vs B) ────────────────────────────────────────────────
+
+export function exportVPNComparacionPDF(
+  resA: ResultadoVPN, inA: InputsVPN,
+  resB: ResultadoVPN, inB: InputsVPN,
+  mejorLabel: string,
+) {
+  const doc = new jsPDF() as DocWithAutoTable;
+  let y = addHeader(doc, 'Valor Presente Neto (VPN) — Comparación A vs B');
+
+  doc.setFontSize(9); doc.setTextColor(107, 114, 128);
+  doc.text('VPN = −I₀ + Σ [FCₜ / (1 + i)ᵗ]  |  Seleccionar alternativa con mayor VPN positivo', 14, y);
+  y += 8;
+
+  // Tabla comparativa de parámetros y resultados
+  autoTable(doc, {
+    startY: y,
+    head: [['Concepto', 'Alternativa A', 'Alternativa B']],
+    body: [
+      ['Inversión Inicial (I₀)',    fmtMoneda(inA.inversionInicial),  fmtMoneda(inB.inversionInicial)],
+      ['Tasa de Descuento TMAR',   `${inA.tasaDescuento}%`,          `${inB.tasaDescuento}%`],
+      ['Valor Residual',           fmtMoneda(inA.valorResidual),      fmtMoneda(inB.valorResidual)],
+      ['Número de Períodos',       `${resA.periodos} años`,           `${resB.periodos} años`],
+      ['VPN Calculado',            fmtMoneda(resA.vpn),               fmtMoneda(resB.vpn)],
+      ['Flujos Descontados',       fmtMoneda(resA.filas.reduce((s, f) => s + f.flujoCajaDescontado, 0)),
+                                   fmtMoneda(resB.filas.reduce((s, f) => s + f.flujoCajaDescontado, 0))],
+      ['Decisión',                 resA.decision,                     resB.decision],
+      ['RECOMENDACIÓN',            mejorLabel === 'Alternativa A' ? '★ ELEGIDA' : '', mejorLabel === 'Alternativa B' ? '★ ELEGIDA' : ''],
+    ],
+    headStyles: { fillColor: [R, G, B] },
+    alternateRowStyles: { fillColor: [249, 250, 251] },
+    columnStyles: { 0: { cellWidth: 55 }, 1: { halign: 'center' }, 2: { halign: 'center' } },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.row.index === 7) {
+        data.cell.styles.fillColor = [254, 242, 242];
+        data.cell.styles.textColor = [R, G, B];
+        data.cell.styles.fontStyle = 'bold';
+      }
+      if (data.row.index === 6 && data.column.index > 0) {
+        const val = String(data.cell.raw);
+        if (val === 'ACEPTAR') data.cell.styles.textColor = [21, 128, 61];
+        if (val === 'RECHAZAR') data.cell.styles.textColor = [220, 38, 38];
+      }
+    },
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Recomendación
+  doc.setFillColor(254, 242, 242);
+  doc.roundedRect(14, y, 182, 14, 3, 3, 'F');
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(R, G, B);
+  const mejorVPN = mejorLabel === 'Alternativa A' ? resA.vpn : resB.vpn;
+  doc.text(`Recomendación: ${mejorLabel} — VPN = ${fmtMoneda(mejorVPN)}`, 18, y + 9);
+
+  y += 20;
+
+  // Tablas de flujos descontados lado a lado — Alt A
+  if (y > 220) { doc.addPage(); y = 20; }
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(R, G, B);
+  doc.text('Alternativa A — Flujos Descontados', 14, y);
+  y += 4;
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Período', 'Flujo de Caja', 'Factor P/F', 'Flujo Descontado']],
+    body: resA.filas.map(f => [
+      `t = ${f.periodo}`, fmtMoneda(f.flujoCaja), rd4(f.factorPF).toFixed(4), fmtMoneda(f.flujoCajaDescontado),
+    ]),
+    headStyles: { fillColor: [R, G, B] },
+    columnStyles: { 0: { halign: 'center' }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+    margin: { left: 14, right: 14 },
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
+  if (y > 220) { doc.addPage(); y = 20; }
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 65, 81);
+  doc.text('Alternativa B — Flujos Descontados', 14, y);
+  y += 4;
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Período', 'Flujo de Caja', 'Factor P/F', 'Flujo Descontado']],
+    body: resB.filas.map(f => [
+      `t = ${f.periodo}`, fmtMoneda(f.flujoCaja), rd4(f.factorPF).toFixed(4), fmtMoneda(f.flujoCajaDescontado),
+    ]),
+    headStyles: { fillColor: [55, 65, 81] },
+    columnStyles: { 0: { halign: 'center' }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+    margin: { left: 14, right: 14 },
+  });
+
+  addFooter(doc);
+  doc.save(`SEAE_VPN_Comparacion_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 // ─── TIR ─────────────────────────────────────────────────────────────────────
 
 export interface InputsTIR {
@@ -399,6 +495,103 @@ export function exportTIRPDF(resultado: ResultadoTIR, inputs: InputsTIR) {
 
   addFooter(doc);
   doc.save(`SEAE_TIR_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+// ─── TIR Comparación (A vs B) ────────────────────────────────────────────────
+
+export function exportTIRComparacionPDF(
+  resA: ResultadoTIR, inA: InputsTIR,
+  resB: ResultadoTIR, inB: InputsTIR,
+  mejorLabel: string,
+) {
+  const doc = new jsPDF() as DocWithAutoTable;
+  let y = addHeader(doc, 'Tasa Interna de Retorno (TIR) — Comparación A vs B');
+
+  doc.setFontSize(9); doc.setTextColor(107, 114, 128);
+  doc.text('0 = −I₀ + Σ [FCₜ / (1 + TIR)ᵗ]  |  Seleccionar alternativa con mayor TIR > TMAR', 14, y);
+  y += 8;
+
+  const fmtTIR = (res: ResultadoTIR) =>
+    res.decision === 'NO_CONVERGE' ? 'N/A' : fmtPct(res.tir);
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Concepto', 'Alternativa A', 'Alternativa B']],
+    body: [
+      ['Inversión Inicial (I₀)',    fmtMoneda(inA.inversionInicial),  fmtMoneda(inB.inversionInicial)],
+      ['TMAR (referencia)',         `${inA.tasaMinima}%`,             `${inB.tasaMinima}%`],
+      ['Valor Residual',           fmtMoneda(inA.valorResidual),      fmtMoneda(inB.valorResidual)],
+      ['Número de Períodos',       `${inA.flujos.length} años`,       `${inB.flujos.length} años`],
+      ['TIR Calculada',            fmtTIR(resA),                      fmtTIR(resB)],
+      ['Diferencia TIR − TMAR',
+        resA.decision === 'NO_CONVERGE' ? '—' : fmtPct(resA.tir - resA.tasaMinima),
+        resB.decision === 'NO_CONVERGE' ? '—' : fmtPct(resB.tir - resB.tasaMinima),
+      ],
+      ['Decisión',                 resA.decision,                     resB.decision],
+      ['RECOMENDACIÓN',            mejorLabel === 'Alternativa A' ? '★ ELEGIDA' : '', mejorLabel === 'Alternativa B' ? '★ ELEGIDA' : ''],
+    ],
+    headStyles: { fillColor: [R, G, B] },
+    alternateRowStyles: { fillColor: [249, 250, 251] },
+    columnStyles: { 0: { cellWidth: 55 }, 1: { halign: 'center' }, 2: { halign: 'center' } },
+    margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (data.row.index === 7) {
+        data.cell.styles.fillColor = [254, 242, 242];
+        data.cell.styles.textColor = [R, G, B];
+        data.cell.styles.fontStyle = 'bold';
+      }
+      if (data.row.index === 6 && data.column.index > 0) {
+        const val = String(data.cell.raw);
+        if (val === 'ACEPTAR') data.cell.styles.textColor = [21, 128, 61];
+        if (val === 'RECHAZAR') data.cell.styles.textColor = [220, 38, 38];
+      }
+    },
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Recomendación
+  doc.setFillColor(254, 242, 242);
+  doc.roundedRect(14, y, 182, 14, 3, 3, 'F');
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(R, G, B);
+  const mejorTIR = mejorLabel === 'Alternativa A' ? resA.tir : resB.tir;
+  const mejorTIRStr = (mejorLabel === 'Alternativa A' ? resA : resB).decision === 'NO_CONVERGE' ? 'N/A' : fmtPct(mejorTIR);
+  doc.text(`Recomendación: ${mejorLabel} — TIR = ${mejorTIRStr}`, 18, y + 9);
+
+  y += 20;
+
+  // Flujos de caja ambas alternativas
+  if (y > 220) { doc.addPage(); y = 20; }
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(R, G, B);
+  doc.text('Flujos de Caja — Alternativa A', 14, y);
+  y += 4;
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Período', 'Flujo de Caja']],
+    body: inA.flujos.map((fc, i) => [`Año ${i + 1}`, fmtMoneda(fc)]),
+    headStyles: { fillColor: [R, G, B] },
+    columnStyles: { 0: { halign: 'center' }, 1: { halign: 'right' } },
+    margin: { left: 14, right: 14 },
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
+  if (y > 220) { doc.addPage(); y = 20; }
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 65, 81);
+  doc.text('Flujos de Caja — Alternativa B', 14, y);
+  y += 4;
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Período', 'Flujo de Caja']],
+    body: inB.flujos.map((fc, i) => [`Año ${i + 1}`, fmtMoneda(fc)]),
+    headStyles: { fillColor: [55, 65, 81] },
+    columnStyles: { 0: { halign: 'center' }, 1: { halign: 'right' } },
+    margin: { left: 14, right: 14 },
+  });
+
+  addFooter(doc);
+  doc.save(`SEAE_TIR_Comparacion_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 // ─── Comparación ─────────────────────────────────────────────────────────────
